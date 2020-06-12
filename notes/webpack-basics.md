@@ -78,3 +78,10 @@ module: {
   }
 }
 ```
+
+## Plugin
+[Documentation - Plugin](https://webpack.js.org/plugins/)  
+plugin 可以在 webpack 运行到某一时刻的时候，帮助开发者做一些事情。
+### 常用 plugin
+- [htmlWebpackPlugin](https://github.com/jantimon/html-webpack-plugin) - 会在打包结束后，自动生成一个 html 文件，并把打包生成的 js 自动引入到这个 html 文件中。
+- [cleanWebpackPlugin](https://github.com/johnagan/clean-webpack-plugin) -  在打包之前运行，自动清除打包目录，重新生成。
