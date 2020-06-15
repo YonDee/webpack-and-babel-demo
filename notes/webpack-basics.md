@@ -85,3 +85,17 @@ plugin 可以在 webpack 运行到某一时刻的时候，帮助开发者做一�
 ### 常用 plugin
 - [htmlWebpackPlugin](https://github.com/jantimon/html-webpack-plugin) - 会在打包结束后，自动生成一个 html 文件，并把打包生成的 js 自动引入到这个 html 文件中。
 - [cleanWebpackPlugin](https://github.com/johnagan/clean-webpack-plugin) -  在打包之前运行，自动清除打包目录，重新生成。
+
+## Source Map
+[Documentation - Devtool](https://webpack.js.org/configuration/devtool/)
+主要用于debug，在 webpack 中也有配置项可以对应生产环境和开发环境。
+```javascript
+module.exports = {
+  /***/
+  devtool: 'source-map'
+  /***/
+}
+```
+其中的`devtool: 'source-map'` 的配置可以配置成想要的，比较建议的有：
+- `mode: 'production'` - `devtool: cheap-module-source-map`
+- `mode: 'development'` - `devtool: cheap-module-eval-source-map`
