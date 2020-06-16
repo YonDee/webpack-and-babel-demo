@@ -85,6 +85,20 @@ plugin 可以在 webpack 运行到某一时刻的时候，帮助开发者做一�
 ### 常用 plugin
 - [htmlWebpackPlugin](https://github.com/jantimon/html-webpack-plugin) - 会在打包结束后，自动生成一个 html 文件，并把打包生成的 js 自动引入到这个 html 文件中。
 - [cleanWebpackPlugin](https://github.com/johnagan/clean-webpack-plugin) -  在打包之前运行，自动清除打包目录，重新生成。
+```javascript
+const HtmlWebpackPlugin = reqire('HtmlWebpackPlugin');
+const CleanWebpackPlugin = reqire('CleanWebpackPlugin')
+module.exports = {
+  /***/
+  plugins: [
+    new HtmlWebpackPlugin({
+      template: 'src/index.html'
+    }),
+    new CleanWebpackPlugin(['dist']),
+  ]
+  /***/
+}
+```
 
 ## Source Map
 [Documentation - Devtool](https://webpack.js.org/configuration/devtool/)
@@ -99,3 +113,91 @@ module.exports = {
 其中的`devtool: 'source-map'` 的配置可以配置成想要的，比较建议的有：
 - `mode: 'production'` - `devtool: cheap-module-source-map`
 - `mode: 'development'` - `devtool: cheap-module-eval-source-map`
+
+## WebpackDevServer
+如果想要自动打包实现的方式有几种：
+1. 在 package.json 的 `scripts` 配置项中，为 webpack 打包指令，添加 `--watch` 配置项
+```javascript
+// package.json
+{
+  /***/
+  "scripts": {
+    "watch": "webpack --watch"
+  }
+  /***/
+}
+```
+> 这种方法需要手动刷新浏览器，并且无法发送 Ajax 请求。
+2. 安装并且使用 WebpackDevServer (`npm install WebpackDevServer -D`)
+```javascript
+// package.json
+{
+  /***/
+  "scripts": {
+    "dev": "webpack-dev-server"
+  }
+  /***/
+}
+
+// webpack.config.js
+// 这里的配置会帮助自动打开项目
+module.exports = {
+  /***/
+  devServer: {
+    contentBase: './dist' // 服务器启动的目录，一般都是webpack 打包输出的目录
+    open: true,
+    proxy: {
+      '/api': 'http://localhost:3000' // 路由转发
+    },
+    part: 8080 // 指定本地服务器端口
+  }
+  /***/
+}
+```
+> 会自动监听并且刷新浏览器，可以发送 Ajax 请求。  
+> 有关于 devServer ，查看文档 [Documentation - DevServer](https://webpack.js.org/configuration/dev-server/)
+3. 在 Node 环境中使用 Koa 或 express 之类的中间件自己实现服务器并实现监听
+```bash
+$ npm install express webpack-dev-middleware -D
+```
+> 有关于 Node 环境的 webpack api 参考 [API - node](https://webpack.js.org/api/node/)
+
+## Hot Module Replacement（HMR）
+[Guides - Hot Module Replacement](https://webpack.js.org/guides/hot-module-replacement/)
+[API - Hot Module Replacement](https://webpack.js.org/api/hot-module-replacement/)
+需要配置+插件实现热加载方便调试
+```javascript
+const webpack = require('webpack')
+
+module.exports = {
+  /***/
+  devServer: {
+    hot: true,
+    hotOnly: true
+  },
+  /***/
+  plugins: [
+    new webpack.HotModuleReplacementPlugin();
+  ]
+  /***/
+}
+```
+这样便将项目配置了 HMR，css-loader 会自动帮我们完成热加载逻辑，同样的 JS 相关的更新，也会需要相应的实现，比如 Vue 的 vue-loader 或是 React 的 babel-preset。
+### 自己实现一个 JS 的 HMR
+```javascript
+// 假设已有 counter 和 number 两个模块
+import counter from './counter';
+import number from './number';
+
+counter();
+number();
+
+if(moudle.hot) {
+  moudle.hot.accept('./number', () => {
+    document.body.removeChild(document.getElementById('number')); // 这里需要先移除原先的元素，然后按照逻辑进行重新渲染。
+    number()
+  })
+}
+```
+> 同样的，如果是依赖 Node 实现的 server，想要更新也需要做特殊处理，具体查看[Via the Node.js API](https://webpack.js.org/guides/hot-module-replacement/#via-the-nodejs-api)
+
