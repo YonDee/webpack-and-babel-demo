@@ -203,3 +203,37 @@ if(moudle.hot) {
 ```
 > 同样的，如果是依赖 Node 实现的 server，想要更新也需要做特殊处理，具体查看[Via the Node.js API](https://webpack.js.org/guides/hot-module-replacement/#via-the-nodejs-api)
 
+## 在 Webpack 中使用 Babel 处理 ES6 代码
+Babel 是一个非常流行的 Javascript 编译器，在 Webpack 中使用 Babel 编译 ES6 代码是非常常规的操作。官方的[setup](https://babeljs.io/setup)使用指引。
+### 步骤
+首先我们需要安装最基础的依赖
+```bash
+$ npm install --save-dev babel-loader @babel/core
+```
+这里这是打通了webpack 与 babel 之间的通信，如果要实现代码编译，则需要额外安装预设配置或者自己配置。
+```bash
+$ npm install --save-dev @babel/presets-env
+```
+> 在 webpack loader 配置中，配置这个项目便可以实现运行。但是这个配置是不全面的，如果需要更全面的配置，则需要[polyfill](https://babeljs.io/docs/en/babel-polyfill)(这个包安装完毕后，放在入口文件顶部即可完成配置)
+#### webpack config 示例
+```javascript
+module.exports = {
+  /***/
+  module: {
+    rules: [{
+      test: /\.js$/,
+      exclude: /node_modules/,
+      loader: 'babel-loader',
+      options: {
+        presets: [
+          ['@babel/preset-env'],
+          {
+            useBuiltIns: 'usage' // 这个配置项会帮助我们压缩代码，自动忽略不必要编译的代码
+          }
+        ]
+      }
+    }]
+  }
+  /***/
+}
+```
