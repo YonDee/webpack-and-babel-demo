@@ -116,6 +116,7 @@ module.exports = {
 - `mode: 'development'` - `devtool: cheap-module-eval-source-map`
 
 ## WebpackDevServer
+[Github - WebpackDevServer](https://github.com/webpack/webpack-dev-server)
 如果想要自动打包实现的方式有几种：
 1. 在 package.json 的 `scripts` 配置项中，为 webpack 打包指令，添加 `--watch` 配置项
 ```javascript
