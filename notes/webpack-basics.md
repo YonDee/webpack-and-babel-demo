@@ -214,7 +214,8 @@ $ npm install --save-dev babel-loader @babel/core
 ```bash
 $ npm install --save-dev @babel/presets-env
 ```
-> 在 webpack loader 配置中，配置这个项目便可以实现运行。但是这个配置是不全面的，如果需要更全面的配置，则需要[polyfill](https://babeljs.io/docs/en/babel-polyfill)(这个包安装完毕后，放在入口文件顶部即可完成配置)
+> 在 webpack loader 配置中，配置这个项目便可以实现运行。但是这个配置是不全面的（对 ES6 语法转译不全面），如果需要更全面的配置，则需要[polyfill](https://babeljs.io/docs/en/babel-polyfill)来补充(这个包安装完毕后，放在入口文件顶部,也就是所有代码执行之前调用，即可完成配置)
+> 值得注意的是，babel-polyfill 配置rules的options时因为是presets配置，所以会污染全局环境，在开发类库的时候，使用[@babel/plugin-transform-runtime](https://babeljs.io/docs/en/babel-plugin-transform-runtime)，这个插件(plugins)会以闭包的形式去引入内容。
 #### webpack config 示例
 ```javascript
 module.exports = {
@@ -228,12 +229,73 @@ module.exports = {
         presets: [
           ['@babel/preset-env'],
           {
-            useBuiltIns: 'usage' // 这个配置项会帮助我们压缩代码，自动忽略不必要编译的代码
+            useBuiltIns: 'usage' // 这个配置项会帮助我们压缩代码，按需引用，尤其在使 babel-polyfill 之后，打包的体积会变大
           }
-        ]
+        ],
+        plugins: [["@babel/plugin-transform-runtime", {
+          "corejs": 2, // 这个配置需要安装 	npm install --save @babel/runtime-corejs2
+          "helpers": true,
+          "regenerator": true,
+          "useESModules": false
+        }]]
       }
     }]
   }
   /***/
+}
+```
+其中 `options` 的内容，可以单独以对象的形式放到 `.babelrc` 中。
+```javascript
+// .babelrc
+{
+  presets: [
+    ['@babel/preset-env'],
+    {
+      useBuiltIns: 'usage' // 这个配置项会帮助我们压缩代码，按需引用，尤其在使 babel-polyfill 之后，打包的体积会变大
+    }
+  ],
+  plugins: [["@babel/plugin-transform-runtime", {
+    "corejs": 2, // 这个配置需要安装 	npm install --save @babel/runtime-corejs2
+    "helpers": true,
+    "regenerator": true,
+    "useESModules": false
+  }]]
+}
+```
+
+## 打包 React
+一系列的 React 依赖安装：
+```bash
+$ npm install --save react react-dom
+```
+配置入口文件：
+```javascript
+import "@babel/react";
+
+import React from "react";
+import ReactDom from "react-dom"
+class App extends React.Component {
+  render() {
+    return <div>Hello world</div>
+  }
+}
+
+ReactDom.render(<App />, document.getElementById('root')
+```
+> 这里的 `root` 节点要在模板中配置好  
+React 是不可以直接被 Webpack 打包的，需要额外安装`@babel/preset-react`包：
+```bash
+$ npm install @babel/preset-react --save-dev
+```
+对于`@babel/preset-react`的配置也可以放到 `.babelrc` 中:
+```javascript
+// .babelrc
+{
+  presets: [
+    "@babel/preset-env", {
+      useBuiltIns: 'useage'
+    }
+  ],
+  "@babel/preset-react"
 }
 ```
