@@ -270,7 +270,7 @@ $ npm install --save react react-dom
 ```
 配置入口文件：
 ```javascript
-import "@babel/react";
+import "@babel/polyfill";
 
 import React from "react";
 import ReactDom from "react-dom"
@@ -280,7 +280,7 @@ class App extends React.Component {
   }
 }
 
-ReactDom.render(<App />, document.getElementById('root')
+ReactDom.render(<App />, document.getElementById('root'))
 ```
 > 这里的 `root` 节点要在模板中配置好  
 React 是不可以直接被 Webpack 打包的，需要额外安装`@babel/preset-react`包：
