@@ -11,4 +11,124 @@ Webpack 2.0 正式版本开始包含的概念。本质意义就避免打包没�
 > ⚠️注意3：类似于 `@babel/polyfill` 这种可以会被 tree shaking 忽略的包（因为模块本身没有导出任何内容），则需要在 `package.json` 中配置 `"sideEffects": ["@babel/polyfill", "*.css"]`(css 模块本身也不会导出任何内容)，如果要对所有模块应用 tree shaking，则配置成 `"sideEffects": false` 即可。（对于`sideEffects`属性配置是 Webpack 4 扩展的特性）
 
 ## Development 和 Production 不同 mode 的区分打包
-在成熟的应用或者框架中，这个特性是必备的。
+在成熟的应用或者框架中，这个特性是必备的。  
+### 暴力拆分步骤：
+1. 拆分开发环境和生产环境的配置（webpack.dev.js - 开发环境配置, webpack.prod.js - 生产环境配置）
+2. 在 package.json 中配置：
+```javascript
+"script": {
+  "dev": "webpack-dev-server --config webpack.dev.js",
+  "build": "webpack --config webpack.prod.js"
+}
+```
+> 这样的拆分会导致两个模式下的配置文件的配置项大量冗余。
+### 抽离公共配置部分，步骤：
+相比上面的内容，我们需要多安装一个`webpack-merge`的包。
+```bash
+npm install webpack-merge --save-dev
+```
+然后:  
+1. 拆分开发环境和生产环境的配置，**并且将两个配置之间共同的部分放到单独的配置文件中，在使用的时候进行合并**（webpack.dev.js - 开发环境配置, webpack.prod.js - 生产环境配置，webpack.common.js - 公共配置）
+2. package.json 配置和上面一样...  
+最终结果会像是这样：
+```javascript
+// webpack.common.js - 公共配置
+const path = require('path');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const CleanWebpackPlugin = require('clean-webpack-plugin');
+
+module.exports = {
+  entry: {
+    main: '.src/index.js'
+  },
+  module: {
+    rules: [{
+      test: /\.js$/,
+      exclude: /node_modules/,
+      loader: 'babel-loader'
+    }, {
+      test: /\.(jpg|png|gif)$/,
+      use: {
+        loader: 'url-loader',
+        options: {
+          name: '[name]_[hash].[ext]',
+          outputPath: 'images',
+          limit: 10240
+        }
+      }
+    }, {
+      test: /\.(eot|ttf|svg)$/,
+      use: {
+        loader: 'file-loader'
+      }
+    }, {
+      test: /\.scss$/,
+      use: [
+        'style-loader',
+        {
+          loader: 'css-loader',
+          options: {
+            importLoaders: 2
+          }
+        },
+        'sass-loader',
+        'postcss-loader'
+      ]
+    }, {
+      test: /\.css$/,
+      use: [
+        'style-loader',
+        'css-loader',
+        'postcss-loader'
+      ]
+    }]
+  },
+  plugins: [
+    new HtmlWebpackPlugin({
+      template: 'src/index.html'
+    }),
+    new CleanWebpackPlugin(['dist'])
+  ],
+  output: {
+    filename: '[name].js',
+    path: path.resolve(__dirname, 'dist')
+  }
+}
+```
+```javascript
+// webpack-dev-js 开发环境配置
+const webpack = require('webpack')
+const merge = require('webpack-merge')
+const commonConfig = require('./webpack.common.js')
+
+const devConfig = {
+  mode: 'development',
+  devtool: 'cheap-module-eval-source-map',
+  devServer: {
+    contentBase: './dist',
+    open: true,
+    port: 8080,
+    hot: true
+  },
+  plugins: [
+    new Webpack.HotModuleReplacementPlugin()
+  ],
+  optimization: {
+    usedExports: true
+  }
+}
+
+module.exports = merge(commonConfig, devConfig)
+```
+```javascript
+// webpack-prod-js 生产环境配置
+const merge = require('webpack-merge')
+const commonConfig = require('./webpack.common.js')
+
+const prodConfig = {
+  mode: 'production',
+  devtool: 'cheap-module-source-map'
+}
+
+module.exports = merge(commonConfig, prodConfig)
+```
