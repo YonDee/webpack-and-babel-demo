@@ -132,3 +132,14 @@ const prodConfig = {
 
 module.exports = merge(commonConfig, prodConfig)
 ```
+
+## Code Splitting
+[文档 - 代码分离](https://webpack.docschina.org/guides/code-splitting/)
+[Guides - Code Splitting](https://webpack.js.org/guides/code-splitting/)
+这是单独的概念，和 webpack 本身无关，用于分割代码，提升性能。
+### webpack 实现代码分割的方式
+1. 同步代码分割，需要在配置中进行配置`optimization: { splitChunks: { chunks: 'all' } }`
+2. 异步代码分割（例如 import 引入的异步组件和模块），无需做任何配置，会自动分割，打包放置到新的文件中
+
+### webpack 是如何实现代码分割的
+底层使用了[SplitChunksPlugin](https://webpack.js.org/plugins/split-chunks-plugin/)插件。
