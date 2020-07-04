@@ -1,4 +1,5 @@
 # Webpack 高级概念
+用法和逻辑可能会随着版本更迭而不同，但是概念会一直存在。
 ## Tree Shaking
 ### 可参考的资料：
 - [guides - tree shaking (zh-Hans)](https://webpack.docschina.org/guides/tree-shaking/)  
@@ -6,9 +7,28 @@
 Webpack 2.0 正式版本开始包含的概念。本质意义就避免打包没用的代码。
 > ⚠️注意1：Tree Shaking 只支持 ES Module 的形式 （`export`抛出，`import`引入，commonjs 形式 `require` 不支持。），Tree Shaking 支持静态引入，`require` 这种动态引入不适用。  
   
-> ⚠️注意2：`mode: development` 默认不开启 tree shaking，如果要在该模式下使用 tree shaking，要在 config 中配置 `optimization: { usedExports: true }`，反过来说，当 `mode: production` 时，不需要配置 `optimization` 项。这里还需要注意 devtool 的配置，例如 `mode: development` 时配置 `devtool: 'cheap-module-eval-source-map'`，到了 `mode: production` 时配置`devtool: cheap-module-source-map`。  
+> ⚠️注意2：`mode: development` 默认不开启 tree shaking，如果要在该模式下使用 tree shaking，要在 config 中配置 `optimization: { usedExports: true }`，反过来说，当 `mode: production` 时，不一定需要配置 `optimization` 项（忽略文件时依然需要开启）。这里还需要注意 devtool 对于 source map的配置，例如 `mode: development` 时配置 `devtool: 'cheap-module-eval-source-map'`，到了 `mode: production` 时配置`devtool: cheap-module-source-map`。  
   
 > ⚠️注意3：类似于 `@babel/polyfill` 这种可以会被 tree shaking 忽略的包（因为模块本身没有导出任何内容），则需要在 `package.json` 中配置 `"sideEffects": ["@babel/polyfill", "*.css"]`(css 模块本身也不会导出任何内容)，如果要对所有模块应用 tree shaking，则配置成 `"sideEffects": false` 即可。（对于`sideEffects`属性配置是 Webpack 4 扩展的特性）
+
+阻止对某个类型的文件的 tree shaking:
+```javascript
+//package.json
+{
+  /*...*/
+  "sideEffects": ['*.css']
+  /*...*/
+}
+
+// webpack.config.js
+module.exports = {
+  /*...*/
+  optimization: {
+    useExports: true
+  }
+  /*...*/
+}
+```
 
 ## Development 和 Production 不同 mode 的区分打包
 在成熟的应用或者框架中，这个特性是必备的。  
@@ -133,13 +153,64 @@ const prodConfig = {
 module.exports = merge(commonConfig, prodConfig)
 ```
 
-## Code Splitting
+## Code Splitting - 代码分割
 [文档 - 代码分离](https://webpack.docschina.org/guides/code-splitting/)
 [Guides - Code Splitting](https://webpack.js.org/guides/code-splitting/)
+> 这是 webpack 的重要特性之一
+### 概念
+这个特性允许开发者将代码分割成不同的包，然后可以按需加载或并行加载这些包。它可以用来实现更小的包，并控制资源加载优先级，如果使用正确，将对加载时间产生重大影响。
 这是单独的概念，和 webpack 本身无关，用于分割代码，提升性能。
+### 默认策略
+webpack 默认有自己的代码分割策略，只对异步代码进行分割：
+```
+webpack will automatically split chunks based on these conditions:
+
+New chunk can be shared OR modules are from the node_modules folder
+New chunk would be bigger than 30kb (before min+gz)
+Maximum number of parallel requests when loading chunks on demand would be lower or equal to 5
+Maximum number of parallel requests at initial page load would be lower or equal to 3
+```
 ### webpack 实现代码分割的方式
 1. 同步代码分割，需要在配置中进行配置`optimization: { splitChunks: { chunks: 'all' } }`
 2. 异步代码分割（例如 import 引入的异步组件和模块），无需做任何配置，会自动分割，打包放置到新的文件中
 
 ### webpack 是如何实现代码分割的
 底层使用了[SplitChunksPlugin](https://webpack.js.org/plugins/split-chunks-plugin/)插件。
+
+## prefetching, preloading
+prefetching: 等待主要内容加载完毕后，利用空闲进行加载
+```javascript
+document.addEventListener('click', () => {
+  import(/* webpackPrefetch: true */ './click.js').then(({default: func}) => { func() })
+})
+```
+preloading: 和主要进程内容一起加载
+> 从代码覆盖率上进行优化思考，合理使用 prefetching 可以大大提高首次加载内容的代码利用率。
+
+## Lazy Loading 懒加载
+在需要的时候进行模块的加载，第一次请求不需要加载所有模块，使得页面访问速度更快，通过 `import` 异步加载模块。这是 ECMAScript 的概念，和 Webapck 无关。
+
+## Chunk
+Webpack **打包生成的 JS 文件**都被称为 Chunk，包括代码分割的文件。例如配置项中的：
+```javascript
+optimization: {
+  splitChunks: {
+    chunks: 'all'
+  }
+} 
+```
+对同步和异步的代码进行代码分割。
+
+## 打包 CSS
+- 官方推荐plugin: [mini-css-extract-plugin](https://webpack.docschina.org/plugins/mini-css-extract-plugin/
+)。  
+这个插件会将 css 从打包到的 JS 文件中，提取到单独的 css 文件中。（对 webpack 而言，默认就是将各种资源文件打包成 JS）
+> webpack 4.0 以前可能会使用 [extract-text-webpack-plugin](https://webpack.js.org/plugins/extract-text-webpack-plugin/) 插件来实现相应的功能，现在针对于 css 文件，建议使用 mini-css-extract-plugin  
+
+> 对于不同入口文件的 css 代码分割，mini-css-extract-plugin 也有详细的[配置](https://webpack.docschina.org/plugins/mini-css-extract-plugin/#extracting-css-based-on-entry)
+
+### 对单独生成的 css 文件进行压缩
+- 官方推荐plugin: [optimize-css-assets-webpack-plugin](https://github.com/NMFR/optimize-css-assets-webpack-plugin)
+- 官方压缩示例 - [Minimizing For Production](https://webpack.docschina.org/plugins/mini-css-extract-plugin/#minimizing-for-production)
+
+
