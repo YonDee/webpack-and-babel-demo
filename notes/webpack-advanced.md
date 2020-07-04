@@ -201,6 +201,20 @@ optimization: {
 ```
 对同步和异步的代码进行代码分割。
 
+## filename 和 chunkFilename
+```javascript
+module.exports = {
+  /*...*/
+  output: {
+    filename: '[name].js',
+    chunkFilename: '[name].chunk.js',
+    path: path.resolve(__dirname, './dist')
+  }
+  /*...*/
+}
+```
+`filename` 本身就代表了入口文件，所有内容被直接访问；而 `chunkFilename` 代表了被入口文件异步间接加载的js文件，所有间接被加载的内容都会走这个配置项。
+
 ## 打包 CSS
 - 官方推荐plugin: [mini-css-extract-plugin](https://webpack.docschina.org/plugins/mini-css-extract-plugin/
 )。  
@@ -208,6 +222,9 @@ optimization: {
 > webpack 4.0 以前可能会使用 [extract-text-webpack-plugin](https://webpack.js.org/plugins/extract-text-webpack-plugin/) 插件来实现相应的功能，现在针对于 css 文件，建议使用 mini-css-extract-plugin  
 
 > 对于不同入口文件的 css 代码分割，mini-css-extract-plugin 也有详细的[配置](https://webpack.docschina.org/plugins/mini-css-extract-plugin/#extracting-css-based-on-entry)
+
+### loader 的配置变更
+使用 mini-css-extract-plugin 生成单独文件需要将 webpack 配置文件中的 `style-loader` 替换成`MiniCssExtractPlugin.loader`
 
 ### 对单独生成的 css 文件进行压缩
 - 官方推荐plugin: [optimize-css-assets-webpack-plugin](https://github.com/NMFR/optimize-css-assets-webpack-plugin)
