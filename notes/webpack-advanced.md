@@ -231,3 +231,80 @@ module.exports = {
 - 官方压缩示例 - [Minimizing For Production](https://webpack.docschina.org/plugins/mini-css-extract-plugin/#minimizing-for-production)
 
 
+## Webpack 和浏览器缓存
+重点：在配置的 `output` 中设置 `contenthash`
+```javascript
+module.exports = {
+  /*...*/
+  output: {
+    filename: '[namel].[contenthash].js',
+    chunkFileName: '[name].[contenthash].js',
+  }
+  /*...*/
+}
+```
+### 缓存失效
+在老版本 webpack 中，manifest 可能会使缓存失效，每次打包的时候 manifest 有变化。为了避免这个情况需要配置：
+```javascript
+module.exports = {
+  /*...*/
+  optimizition: {
+    runtimechunk: {
+      name: 'runtime'
+    }
+  }
+  /*...*/
+}
+```
+把 manifest 的内容都提取到 runtime 文件中。
+> 老版本的 webpack 做缓存还需要依赖一定的插件。目前版本的 webpack 已经不需要额外配置插件了。
+
+
+## Shimming - 垫片
+### 概念
+例如 [@babel/polyfill](https://github.com/babel/babel) 可以帮我们编译低版本浏览器不支持的语法，使得代码得以运行。
+### 用例
+#### [wepback.ProvidePlugin()](https://webpack.js.org/plugins/provide-plugin/)
+```javascript
+module.exports = {
+  /*...*/
+  plugins: [
+    new webpack.ProvidePlugin({
+      $: 'jquery',
+      _join: ['lodash', 'join']
+    })
+  ]
+  /*...*/
+}
+```
+上面这段配置表示使用 webpack 自身的 `ProvidePlugin` 插件来实现: 
+1. 如果在打包的代码中检测到了 `$` 字符串，那么会自动引用 `jquery` 这个包。
+2. 如果打包的代码中使用了 `_join` 这个方法，那么会自动从 `lodash` 包中查找 `join`  
+
+#### [imports-loader](https://github.com/webpack-contrib/imports-loader)
+```bash
+$ npm install imports-loader --dev-save
+```
+```javascript
+module.exports = {
+  /*...*/
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        excule: /node-modules/,
+        use: [
+          {
+            loader: 'babel-loader'
+          },
+          {
+            loader: 'imports-loader?this=window'
+          }
+        ]
+      }
+    ]
+  }
+  /*...*/
+}
+```
+使用 `imports-loader` 来实现所有打包的 js 文件中的 `this` 都指向 `window`（默认会指向模块本身）
