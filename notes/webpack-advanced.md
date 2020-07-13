@@ -308,3 +308,32 @@ module.exports = {
 }
 ```
 使用 `imports-loader` 来实现所有打包的 js 文件中的 `this` 都指向 `window`（默认会指向模块本身）
+
+## 环境变量
+使用环境变量来控制 webpack 配置文件的使用，这样在 package.json 中配置打包命令的时候，所使用的配置文件可以直接使用通用文件导出的配置内容，这个内容根据逻辑判断来采用相对应的环境配置：
+```javascript
+const devConfig = require("./config/webpack.dev.js")
+const prodConfig = require("./config/webpack.prod.js")
+const commonConfig = {
+  /*...*/
+  /*...*/
+}
+
+module.exports = (env) => {
+  if(env && env.production) {
+    return merge(commonConfig, prodConfig);
+  } else {
+    return merge(commonConfig, devConfig);
+  }
+}
+```
+```javascript
+{
+  /*...*/
+  "script": {
+    "dev": "webpack --config ./config/webpack.common.js",
+    "build": "webpack --env=production --config ./config/webpack/common.js"
+  }
+  /*...*/
+}
+```
