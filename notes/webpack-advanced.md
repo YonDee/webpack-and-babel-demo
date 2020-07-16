@@ -339,3 +339,29 @@ module.exports = (env) => {
 ```
 
 > 并不代表这种方式比传统直接使用配置文件并且在各自配置文件中使用 `merge` 更为先进，只是除了这样的方式，还有**环境变量**方式可供选择。
+
+## Library 库 项目的打包
+需要了解的配置项目：
+- [`externals`](https://webpack.js.org/configuration/externals/) - eg: `externals: 'lodash'` (打包项目时不打包自带的 lodash，而引用外部指定成 lodash 的包)
+- `output`的 [`library`](https://webpack.js.org/configuration/output/#outputlibrary) 和 [`libraryTarget`](https://webpack.js.org/configuration/output/#outputlibrarytarget)
+
+### 库项目的简单打包配置
+```javascript
+const path = reurie('path')
+module.exports = {
+  mode: 'production',
+  entry: './src/index.js',
+  externals: 'lodash',
+  output: {
+    path: path.resolve(__dirname, 'dist'),
+    filename: 'library.js',
+    library: 'root',
+    libraryTarget: 'umd'
+  }
+}
+```
+> 注意最终我们使用的是 dist 中打包出来的文件，所以在 `package.json` 文件中，我们需要将 `main: 'index.js'` 配置项修改成 `main: './dist/index.js'`类似这样的文件引用的修改。  
+> 如果配置中，只使用 `libraryTarget` 这个配置项，那么我们可以访问到库的方式有：`import xxx from 'xxx'`， `const xxx = require('xxx')`，`require(['xxx'], function() {})`。如果我们需要在使用标签时，默认可以使用库文件，那么就需要配置 `library` 这个配置项，配置项配置完毕之后，即可在 `libraryTarget` 指定的范围中使用库。
+
+## PWA - Progressive Web Application
+[指南](https://webpack.docschina.org/guides/progressive-web-application/)
