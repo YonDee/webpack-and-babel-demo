@@ -365,3 +365,17 @@ module.exports = {
 
 ## PWA - Progressive Web Application
 [指南](https://webpack.docschina.org/guides/progressive-web-application/)
+### 概念
+在服务器离线的情况下，客户端还可以有内容可以使用或展示。一般来说成熟的同构框架或者cli都带了pwa的选项选项配置。如果需要自己实现的话，可以使用 [wordbox-webpack-plugin](https://github.com/GoogleChrome/workbox) 这个插件
+
+## TypeScript 的打包和配置
+TypeScript 作为 JavaScript 的超集。越来越主流，尤其在团队协作的情况下，可以更好的规范代码提高维护性，报错提示。
+
+### 基础使用
+- 需要安装 [TypeScript](https://www.typescriptlang.org/)
+- 需要的 loader: [ts-loader](https://github.com/TypeStrong/ts-loader)
+- 可选的语法检查支持模块：[TypeSearch](https://microsoft.github.io/TypeSearch/)
+- 额外需要创建的文件，在使用 ts-loader 之后，并不是说可以直接打包 ts 文件，还需要创建 tsconfig.json 配置文件来使用。
+
+### Demo
+[Webpack-Typescript](../demos/wepback-typescript)
