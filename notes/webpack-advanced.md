@@ -379,3 +379,11 @@ TypeScript 作为 JavaScript 的超集。越来越主流，尤其在团队协作
 
 ### Demo
 [Webpack-Typescript](../demos/wepback-typescript)
+
+
+## WebpackDevServer 环境下的请求转发
+- 官方使用文档 - [devServer.proxy](https://webpack.js.org/configuration/dev-server/#devserverproxy)
+- devServer.proxy 基于 - [http-proxy-middleware](https://github.com/chimurai/http-proxy-middleware)
+
+## WebpackDevServer 中配置 PWA 路由
+配置（就这么简单）：[devServer.historyApiFallback](https://webpack.js.org/configuration/dev-server/#devserverhistoryapifallback)
