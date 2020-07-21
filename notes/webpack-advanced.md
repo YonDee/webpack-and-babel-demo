@@ -387,3 +387,26 @@ TypeScript 作为 JavaScript 的超集。越来越主流，尤其在团队协作
 
 ## WebpackDevServer 中配置 PWA 路由
 配置（就这么简单）：[devServer.historyApiFallback](https://webpack.js.org/configuration/dev-server/#devserverhistoryapifallback)
+
+
+## Webpack ESlint
+本身 ESlint 和 Webpack 没有什么关系，独立安装 ESlint 进行配置并且借助 `npx eslint xxx` 这样命令行检测也好，编辑器插件也好，都可以基本使用 eslint。  
+而 webpack 也可以借助 [eslint-loader](https://webpack.js.org/loaders/eslint-loader/)，来在 JS 文件打包的时候先进行 eslint 规则的检测，并在页面上进行相应的报错提示。简单配置如下：
+```javascript
+module.exports = {
+  /*...*/
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        exclude: /node-modules/,
+        use: ['babel-loader', 'eslint-loader']
+      }
+    ]
+  }
+  /*...*/
+}
+```
+这样在打包 js 文件的时候就会先检测 eslint 配置的规则，然后进行 babel 的代码转译。
+> 比较常见使用 webpack 进行 webpack 规则应用的有 vue-cli  
+> eslint-loader 会对打包性能有影响。一般在生产环境中不建议使用。解决这个问题的方案除了命令行和编辑器的插件，还有 [git hooks](https://git-scm.com/book/zh/v2/%E8%87%AA%E5%AE%9A%E4%B9%89-Git-Git-%E9%92%A9%E5%AD%90) 可以在代码提交前进行 eslint 检测。
