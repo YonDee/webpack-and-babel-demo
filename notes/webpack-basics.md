@@ -245,6 +245,7 @@ module.exports = {
 }
 ```
 其中 `options` 的内容，可以单独以对象的形式放到 `.babelrc` 中。
+> 注意这里的 `test` 配置是 `/\.js$/` 精准匹配了 `.js` 结尾的文件，如果遇到 js 语法拓展类型的文件，例如 jsx，则需要配置成 `/\.jsx?$/` 来进行匹配，这时候 js 和 jsx 后缀的文件都可以被 loader 打包
 ```javascript
 // .babelrc
 {

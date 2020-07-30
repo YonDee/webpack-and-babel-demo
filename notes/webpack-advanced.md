@@ -1,5 +1,49 @@
 # Webpack 高级概念
-用法和逻辑可能会随着版本更迭而不同，但是概念会一直存在。
+用法和逻辑可能会随着版本更迭而不同，但是概念会一直存在。(当前版本webpack4.x)
+- [Webpack 高级概念](#webpack-高级概念)
+  - [Tree Shaking](#tree-shaking)
+    - [可参考的资料：](#可参考的资料)
+    - [概念](#概念)
+  - [Development 和 Production 不同 mode 的区分打包](#development-和-production-不同-mode-的区分打包)
+    - [暴力拆分步骤：](#暴力拆分步骤)
+    - [抽离公共配置部分，步骤：](#抽离公共配置部分步骤)
+  - [Code Splitting - 代码分割](#code-splitting---代码分割)
+    - [概念](#概念-1)
+    - [默认策略](#默认策略)
+    - [webpack 实现代码分割的方式](#webpack-实现代码分割的方式)
+    - [webpack 是如何实现代码分割的](#webpack-是如何实现代码分割的)
+  - [prefetching, preloading](#prefetching-preloading)
+  - [Lazy Loading 懒加载](#lazy-loading-懒加载)
+  - [Chunk](#chunk)
+  - [filename 和 chunkFilename](#filename-和-chunkfilename)
+  - [打包 CSS](#打包-css)
+    - [loader 的配置变更](#loader-的配置变更)
+    - [对单独生成的 css 文件进行压缩](#对单独生成的-css-文件进行压缩)
+  - [Webpack 和浏览器缓存](#webpack-和浏览器缓存)
+    - [缓存失效](#缓存失效)
+  - [Shimming - 垫片](#shimming---垫片)
+    - [概念](#概念-2)
+    - [用例](#用例)
+      - [wepback.ProvidePlugin()](#wepbackprovideplugin)
+      - [imports-loader](#imports-loader)
+  - [环境变量](#环境变量)
+  - [Library 库 项目的打包](#library-库-项目的打包)
+    - [库项目的简单打包配置](#库项目的简单打包配置)
+  - [PWA - Progressive Web Application](#pwa---progressive-web-application)
+    - [概念](#概念-3)
+  - [TypeScript 的打包和配置](#typescript-的打包和配置)
+    - [基础使用](#基础使用)
+    - [Demo](#demo)
+  - [WebpackDevServer 环境下的请求转发](#webpackdevserver-环境下的请求转发)
+  - [WebpackDevServer 中配置 PWA 路由](#webpackdevserver-中配置-pwa-路由)
+  - [Webpack ESlint](#webpack-eslint)
+  - [webpack 性能优化](#webpack-性能优化)
+    - [跟上技术迭代](#跟上技术迭代)
+    - [在尽可能少的模块上应用 Loader](#在尽可能少的模块上应用-loader)
+      - [exclude 配置减少需要 loader 工作的目录](#exclude-配置减少需要-loader-工作的目录)
+      - [include 配置指定需要 loader 工作的目录](#include-配置指定需要-loader-工作的目录)
+    - [Plugin 尽可能精简并确保可靠](#plugin-尽可能精简并确保可靠)
+    - [resolve 参数合理配置](#resolve-参数合理配置)
 ## Tree Shaking
 ### 可参考的资料：
 - [guides - tree shaking (zh-Hans)](https://webpack.docschina.org/guides/tree-shaking/)  
@@ -342,7 +386,7 @@ module.exports = (env) => {
 
 ## Library 库 项目的打包
 需要了解的配置项目：
-- [`externals`](https://webpack.js.org/configuration/externals/) - eg: `externals: 'lodash'` (打包项目时不打包自带的 lodash，而引用外部指定成 lodash 的包)
+- [`externals`](https://webpack.js.org/configuration/externals/) - eg: `externals: 'lodash'` (打包项目时不打包自带的 lodash，而引用外部指定成 lodash 的包 ——  单独安装 lodash)
 - `output`的 [`library`](https://webpack.js.org/configuration/output/#outputlibrary) 和 [`libraryTarget`](https://webpack.js.org/configuration/output/#outputlibrarytarget)
 
 ### 库项目的简单打包配置
@@ -360,8 +404,8 @@ module.exports = {
   }
 }
 ```
-> 注意最终我们使用的是 dist 中打包出来的文件，所以在 `package.json` 文件中，我们需要将 `main: 'index.js'` 配置项修改成 `main: './dist/index.js'`类似这样的文件引用的修改。  
-> 如果配置中，只使用 `libraryTarget` 这个配置项，那么我们可以访问到库的方式有：`import xxx from 'xxx'`， `const xxx = require('xxx')`，`require(['xxx'], function() {})`。如果我们需要在使用标签时，默认可以使用库文件，那么就需要配置 `library` 这个配置项，配置项配置完毕之后，即可在 `libraryTarget` 指定的范围中使用库。
+> 注意最终我们（使用库时）使用的是 dist 中打包出来的文件，所以在 `package.json` 文件中，我们需要将 `main: 'index.js'` 配置项修改成 `main: './dist/index.js'`类似这样的文件引用的修改。  
+> 如果配置中，只使用 `libraryTarget` 这个配置项，那么我们可以访问到库的方式有：`import xxx from 'xxx'`， `const xxx = require('xxx')`，`require(['xxx'], function() {})`。如果我们需要在使用标签时，默认可以使用库文件，那么就需要配置 `library` 这个配置项（`library`用于配置挂载内容的名称——变量名），配置项配置完毕之后，即可在 `libraryTarget` 指定的范围中使用库（`libraryTarget`指定的挂载目标）。
 
 ## PWA - Progressive Web Application
 [指南](https://webpack.docschina.org/guides/progressive-web-application/)
@@ -408,5 +452,43 @@ module.exports = {
 }
 ```
 这样在打包 js 文件的时候就会先检测 eslint 配置的规则，然后进行 babel 的代码转译。
-> 比较常见使用 webpack 进行 webpack 规则应用的有 vue-cli  
+> 比较常见使用 webpack 进行规则应用的有 vue-cli  
 > eslint-loader 会对打包性能有影响。一般在生产环境中不建议使用。解决这个问题的方案除了命令行和编辑器的插件，还有 [git hooks](https://git-scm.com/book/zh/v2/%E8%87%AA%E5%AE%9A%E4%B9%89-Git-Git-%E9%92%A9%E5%AD%90) 可以在代码提交前进行 eslint 检测。
+
+## webpack 性能优化
+### 跟上技术迭代
+- webpack（尽可能新的）
+- Node（webpack 运行在 node 之上）
+- Npm（模块之间相互引用，新版本更快的分析依赖也会间接也会优化到性能）
+- Yarn（同上）
+### 在尽可能少的模块上应用 Loader
+#### exclude 配置减少需要 loader 工作的目录
+比如一般进行 `babel-loader` 的时候，为了不进行重复的检查和转译，我们会忽略`exclude: /node_modules/`，因为一般我们引入的第三方模块都是打包好的，没有必要进行重复的打包和转译。  
+#### include 配置指定需要 loader 工作的目录
+除了上面所说的忽略某个文件目录来进行优化，还有个等价的方式可以进行相同的操作，例如配置`include: path.resolve(__dirname, '../src')`来指定`src`目录下的文件需要通过 loader 进行操作。
+
+### Plugin 尽可能精简并确保可靠
+没有必要使用的 plugin 就不使用，比如在生产环境下打包需要用到的代码压缩 [mini-css-extract-plugin](https://webpack.js.org/plugins/mini-css-extract-plugin/)，在开发环境下就无须使用。  
+同样的生产环境也用不到热更新（[webpack.HotModuleReplacementPlugin](https://webpack.js.org/plugins/hot-module-replacement-plugin/)）等等一系列为了开发方便而使用的 plugin 。这也就是为什么要区分配置的原因之一。  
+尽可能使用**官方推荐**（或社区验证过并认可）的插件进行打包，毕竟是推荐，从可靠性和性能来说至少不会很差。
+
+### resolve 参数合理配置
+所谓合理配置，就是**不要滥用**这个配置！
+：
+```javascript
+module.exports = {
+  /*...*/
+  resolve: {
+    extensions: ['.js', '.jsx'],
+    mainFiles: ['index', 'child'],
+    alias: {
+      yondee: path.resolve(__dirname, '../src/child')
+    }
+  }
+  /*...*/
+}
+```
+在项目中使用语法拓展文件，例如 jsx 后缀的文件，一般直接引入则需要配置 loader 外还需要在引入时完整写好文件后缀，
+`extensions` 的配置表示：会先查找相关命名的 `.js` 后缀文件，之后查找与之相匹配的 `.jsx` 后缀文件，之后文件`import Child from './child/child'`，假设 `child` 是个 jsx 后缀的组件，也会被正常打包。  
+有时候引入一个组件就只引入一个目录，然后默认会找到名为 `index` 文件来挂载，那么`mainFiles` 可以声明出更多命名，而不仅仅是`index`，所以 `import Child from './child/'` 也会默认引用到 `child` 组件（在没有找到 `index` 的前提下）。  
+`alias` 表示别名引入，`import Child from 'yondee'` 便会理解成 `import Child from '/src/child'`，这个配置的应用场景在需要复杂目录层级的情况下，可以使用 `alias` 使得更加直观简洁，尤其在被多个组件引用的情况下，如果发生了目录的更改，`alias` 的配置将会更加方便。
