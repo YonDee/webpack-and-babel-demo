@@ -44,6 +44,8 @@
       - [include 配置指定需要 loader 工作的目录](#include-配置指定需要-loader-工作的目录)
     - [Plugin 尽可能精简并确保可靠](#plugin-尽可能精简并确保可靠)
     - [resolve 参数合理配置](#resolve-参数合理配置)
+    - [避免第三方模块重复打包，从而提高打包速度](#避免第三方模块重复打包从而提高打包速度)
+      - [进阶方案](#进阶方案)
 ## Tree Shaking
 ### 可参考的资料：
 - [guides - tree shaking (zh-Hans)](https://webpack.docschina.org/guides/tree-shaking/)  
@@ -492,3 +494,59 @@ module.exports = {
 `extensions` 的配置表示：会先查找相关命名的 `.js` 后缀文件，之后查找与之相匹配的 `.jsx` 后缀文件，之后文件`import Child from './child/child'`，假设 `child` 是个 jsx 后缀的组件，也会被正常打包。  
 有时候引入一个组件就只引入一个目录，然后默认会找到名为 `index` 文件来挂载，那么`mainFiles` 可以声明出更多命名，而不仅仅是`index`，所以 `import Child from './child/'` 也会默认引用到 `child` 组件（在没有找到 `index` 的前提下）。  
 `alias` 表示别名引入，`import Child from 'yondee'` 便会理解成 `import Child from '/src/child'`，这个配置的应用场景在需要复杂目录层级的情况下，可以使用 `alias` 使得更加直观简洁，尤其在被多个组件引用的情况下，如果发生了目录的更改，`alias` 的配置将会更加方便。
+
+### 避免第三方模块重复打包，从而提高打包速度
+一般第三方模块没做处理的话会被重复打包，每次打包的时候都会动态的引用第三方模块，合理的拆分这些依赖将会提高打包速度。  
+```javascript
+// webpack.dll.js
+const path = require('path')
+module.exports = {
+  mode: 'production',
+  entry: {
+    vendors: ['react', 'react-dom', 'lodash']
+  },
+  output: [
+    filename: '[name].dll.js',
+    path: path.resolve(__dirname, '../dll')
+    library: "[name]"
+  ]
+}
+```
+配置中最后使用`[name]`变量的方式配置了`library`从而向全局暴露这个模块以供使用（这里根据`entry`的配置，全局访问`vendors`可以访问模块的内容和方法） 
+  
+```javascript
+// package.json
+{
+  /*...*/
+  "script": {
+    /*...*/
+    "build:dll": "webpack --config ./build/webpack.dll.js"
+  }
+  /*...*/
+}
+```
+这样配置完毕之后，`react` `react-dom` `lodash` 这样的第三方模块将会被单独打包到`./dll/vendors.dll.js`下，`vendors`的由来是因为`entry`配置（`entry` 配置可以配置成多个，例如`react: ['react', 'react-dom']`）。  
+  
+```shell
+$ npm install add-asset-html-webpack-plugin --save
+```
+安装添加静态资源插件
+```javascript
+// webpack.common.js
+module.exports = {
+  /*...*/
+  plugin: [
+    /*...*/
+    new AddAssetHtmlWebpackPlugin({
+      filepath: path.resolve(__dirname, '../dll/vendors.dll.js')
+    })
+  ]
+  /*...*/
+}
+```
+使用`add-asset-html-webpack-plugin` 来将生成的 dll 挂载到全局变量上。
+
+> 至此，可以实现模块的单独打包并且挂载到全局，但是全局必须要从`vendors`这个名称进行模块的访问。
+
+#### 进阶方案
+使用 webpack 自带的 `webpack.DllPlugin` 生成动态链接库，并配合`webpack.DllRefencePlugin`插件来引用动态链接库的代码。
