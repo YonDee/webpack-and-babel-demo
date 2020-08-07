@@ -17,6 +17,11 @@
     - [步骤](#步骤)
       - [webpack config 示例](#webpack-config-示例)
   - [打包 React](#打包-react)
+  - [附录](#附录)
+    - [在这篇基础的内容中用到的包](#在这篇基础的内容中用到的包)
+      - [开发相关](#开发相关)
+      - [babel 相关](#babel-相关)
+      - [react 相关](#react-相关)
 ## 什么是 Webpack？
 **模块（不仅仅是JS）打包工具**
 ### 一个简单的 webpack 配置
@@ -35,7 +40,7 @@ module.exports = {
 ## 什么是 Loader?
 [Documentation - loader](https://webpack.js.org/concepts/loaders/)
 > 常见的 loader 在官网都有使用和指引  
-默认情况下，Webpack 只支持 JS 文件的打包，如果我们的应用具有多样化的模块或者媒体文件，这就需要loader，loader 告诉 webpack 我们以什么样的方式进行打包并且会将资源重新编译后返回一个理想结果予以展现。
+默认情况下，Webpack 只支持 JS 文件的打包，如果我们的应用具有多样化的模块或者媒体文件，这就需要loader，loader 告诉 webpack 我们以**什么样的方式进行打包并且会将资源重新编译后返回一个理想结果予以展现**(资源转换成想要的结果)。
 ### Loader 的使用
 [Guides - Asset Management](https://webpack.js.org/guides/asset-management/)
 [指南 - 资源管理])(https://www.webpackjs.com/guides/asset-management/)
@@ -202,7 +207,7 @@ module.exports = {
   /***/
 }
 ```
-这样便将项目配置了 HMR，css-loader 会自动帮我们完成热加载逻辑，同样的 JS 相关的更新，也会需要相应的实现，比如 Vue 的 vue-loader 或是 React 的 babel-preset。
+这样便将项目配置了 HMR，css-loader 会自动帮我们完成热加载逻辑，同样的 JS 相关的更新，也会需要相应的实现，比如 Vue 的 [vue-loader](https://vue-loader.vuejs.org/zh/) 或是 React 的 [preset-react](https://www.babeljs.cn/docs/babel-preset-react)。
 ### 自己实现一个 JS 的 HMR
 ```javascript
 // 假设已有 counter 和 number 两个模块
@@ -224,16 +229,20 @@ if(moudle.hot) {
 ## 在 Webpack 中使用 Babel 处理 ES6 代码
 Babel 是一个非常流行的 Javascript 编译器，在 Webpack 中使用 Babel 编译 ES6 代码是非常常规的操作。官方的[setup](https://babeljs.io/setup)使用指引。
 ### 步骤
+1. 安装核心`npm install --save-dev babel-loader @babel/core`
+2. 在webpack配置的`module`项中进行配置
+3. 创建 `.babelrc` 文件（分离有关于 babel 的模块配置的 `options` 项到`.babelrc`中），并且配置[`@babel/preset-env`](https://babeljs.io/docs/en/babel-preset-env)
 首先我们需要安装最基础的依赖
 ```bash
 $ npm install --save-dev babel-loader @babel/core
 ```
 这里这是打通了webpack 与 babel 之间的通信，如果要实现代码编译，则需要额外安装预设配置或者自己配置。
 ```bash
-$ npm install --save-dev @babel/presets-env
+$ npm install --save-dev @babel/preset-env
 ```
-> 在 webpack loader 配置中，配置这个项目便可以实现运行。但是这个配置是不全面的（对 ES6 语法转译不全面），如果需要更全面的配置，则需要[polyfill](https://babeljs.io/docs/en/babel-polyfill)来补充(这个包安装完毕后，放在入口文件顶部,也就是所有代码执行之前调用，即可完成配置)
-> 值得注意的是，babel-polyfill 配置rules的options时因为是presets配置，所以会污染全局环境，在开发类库的时候，使用[@babel/plugin-transform-runtime](https://babeljs.io/docs/en/babel-plugin-transform-runtime)，这个插件(plugins)会以闭包的形式去引入内容。
+> 在 webpack loader 配置中，配置这个项目便可以实现运行。但是这个配置是不全面的（对 ES6 语法转译不全面），如果需要更全面的配置，则需要[polyfill](https://babeljs.io/docs/en/babel-polyfill)来补充(这个包安装完毕后，放在入口文件顶部,也就是所有代码执行之前调用，即可完成配置)  
+  
+> 值得注意的是，babel-polyfill 配置rules的options时因为是presets配置，所以会污染全局环境，在开发类库的时候，使用[@babel/plugin-transform-runtime](https://babeljs.io/docs/en/babel-plugin-transform-runtime)，这个插件(plugins)会以[闭包](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Closures)的形式去引入内容。
 #### webpack config 示例
 ```javascript
 module.exports = {
@@ -262,7 +271,12 @@ module.exports = {
   /***/
 }
 ```
-其中 `options` 的内容，可以单独以对象的形式放到 `.babelrc` 中。
+其中 `options` 的内容，可以单独以对象的形式放到 `.babelrc` 中(例如配置 `@babel/preset-env`)：
+```javascript
+{
+  "presets": ["@babel/preset-env"]
+}
+```
 > 注意这里的 `test` 配置是 `/\.js$/` 精准匹配了 `.js` 结尾的文件，如果遇到 js 语法拓展类型的文件，例如 jsx，则需要配置成 `/\.jsx?$/` 来进行匹配，这时候 js 和 jsx 后缀的文件都可以被 loader 打包
 ```javascript
 // .babelrc
@@ -318,3 +332,23 @@ $ npm install @babel/preset-react --save-dev
   "@babel/preset-react"
 }
 ```
+
+## 附录
+### 在这篇基础的内容中用到的包
+- [webpack](https://github.com/webpack/webpack)
+- [webpack-cli](https://github.com/webpack/webpack-cli/)
+- [file-loader](https://github.com/webpack-contrib/file-loader)
+- [css-loader](https://github.com/webpack-contrib/css-loader)
+#### 开发相关
+- [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin)
+- [clean-webpack-plugin](https://github.com/johnagan/clean-webpack-plugin)
+- [webpack.HotModuleReplacementPlugin](https://webpack.js.org/plugins/hot-module-replacement-plugin/)
+#### babel 相关
+- [babel-loader](https://github.com/babel/babel-loader)
+- [@babel/core](https://babeljs.io/docs/en/babel-core)
+- [@babel/preset-env](https://babeljs.io/docs/en/babel-preset-env)
+- [@babel/polyfill](https://babeljs.io/docs/en/babel-polyfill)
+#### react 相关
+- [react](https://zh-hans.reactjs.org/)
+- [react-dom](https://zh-hans.reactjs.org/docs/react-dom.html)
+- [@babel/preset-react](https://babeljs.io/docs/en/babel-preset-react)
