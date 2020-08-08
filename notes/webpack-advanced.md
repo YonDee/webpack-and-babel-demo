@@ -11,8 +11,11 @@
   - [Code Splitting - 代码分割](#code-splitting---代码分割)
     - [概念](#概念-1)
     - [默认策略](#默认策略)
+      - [可以自己进行代码分割，在需要第三发方库的时候，异步加载就会触发默认策略从而分割：](#可以自己进行代码分割在需要第三发方库的时候异步加载就会触发默认策略从而分割)
     - [webpack 实现代码分割的方式](#webpack-实现代码分割的方式)
-    - [webpack 是如何实现代码分割的](#webpack-是如何实现代码分割的)
+      - [split-chunks-plugin](#split-chunks-plugin)
+        - [split-chunks-plugin 的默认规则](#split-chunks-plugin-的默认规则)
+      - [使用魔法注释（magic commit）来进行 chunk 命名。](#使用魔法注释magic-commit来进行-chunk-命名)
   - [prefetching, preloading](#prefetching-preloading)
   - [Lazy Loading 懒加载](#lazy-loading-懒加载)
   - [Chunk](#chunk)
@@ -209,8 +212,11 @@ module.exports = merge(commonConfig, prodConfig)
 [Guides - Code Splitting](https://webpack.js.org/guides/code-splitting/)
 > 这是 webpack 的重要特性之一
 ### 概念
-这个特性允许开发者将代码分割成不同的包，然后可以按需加载或并行加载这些包。它可以用来实现更小的包，并控制资源加载优先级，如果使用正确，将对加载时间产生重大影响。
-这是单独的概念，和 webpack 本身无关，用于分割代码，提升性能。
+不进行代码分割的代码，将会把所有的代码都打包在一个js文件中，随着项目内容的丰富，这个js文件会越来越大。  
+这个特性允许开发者将代码分割成不同的包，然后可以按需加载或并行加载这些包。它可以用来实现更小的包，并控制资源加载优先级，如果使用正确，将对加载时间产生重大影响。  
+这是单独的概念，和 webpack 本身无关，用于分割代码，提升性能。  
+也就是说，Code Splitting 就是把代码分成很多块（chunk）。
+
 ### 默认策略
 webpack 默认有自己的代码分割策略，只对异步代码进行分割：
 ```
@@ -221,12 +227,75 @@ New chunk would be bigger than 30kb (before min+gz)
 Maximum number of parallel requests when loading chunks on demand would be lower or equal to 5
 Maximum number of parallel requests at initial page load would be lower or equal to 3
 ```
-### webpack 实现代码分割的方式
-1. 同步代码分割，需要在配置中进行配置`optimization: { splitChunks: { chunks: 'all' } }`
-2. 异步代码分割（例如 import 引入的异步组件和模块），无需做任何配置，会自动分割，打包放置到新的文件中
+#### 可以自己进行代码分割，在需要第三发方库的时候，异步加载就会触发默认策略从而分割：
+例如:
+```javascript
+// lodash.js
+import _ from 'lodash'
+window._ = _
+```
+异步加载 lodash,并且挂载到全局。  
+最终代码会生成 `main.js` 和 `lodash.js`
 
-### webpack 是如何实现代码分割的
-底层使用了[SplitChunksPlugin](https://webpack.js.org/plugins/split-chunks-plugin/)插件。
+### webpack 实现代码分割的方式
+1. 同步代码：在配置中进行配置`optimization: { splitChunks: { chunks: 'all' }}`(这个配置默认值为：`async`) 更多配置参考 [split-chunks-plugin](https://webpack.js.org/plugins/split-chunks-plugin/)
+2. 异步代码:（例如 `import` 引入的异步组件和模块），无需做任何配置，会自动分割，打包放置到新的文件中。
+> 总结来说 异步代码，会自动分割，不需要 webpack 额外配置，同步代码需要配置 `optimization`
+
+#### split-chunks-plugin
+webpack 底层使用了 [split-chunks-plugin](https://webpack.js.org/plugins/split-chunks-plugin/) 插件（无需额外安装）,默认已经有一套配置来用于代码分割。  
+分割规则的顺序是自上而下的，例如下面这个默认配置截图，一个代码会不会被分割就是通过这个配置从上到下（从 `chunks` 开始到 `cacheGroup` 结束）看看是否符合条件，直到 `cacheGroup` 中定义的规则是否有与之相匹配的进行分割处理。
+##### split-chunks-plugin 的默认规则
+```javascript
+module.exports = {
+  //...
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      minSize: 20000,
+      minRemainingSize: 0,
+      maxSize: 0,
+      minChunks: 1,
+      maxAsyncRequests: 30,
+      maxInitialRequests: 30,
+      automaticNameDelimiter: '~', // 默认名称分割符
+      enforceSizeThreshold: 50000,
+      name: true,  // 允许分割代码使用 filename 命名
+      cacheGroups: {
+        defaultVendors: {
+          test: /[\\/]node_modules[\\/]/,
+          priority: -10,  // 优先级(数字越大越靠前)
+          filename: "defaultVendors.js"
+        },
+        default: {
+          minChunks: 2,
+          priority: -20,
+          reuseExistingChunk: true // 如果模块符合两个规则，则使用已经分割打包的模块而不用重新分割打包
+          filename: "default.js"
+        }
+      }
+    }
+  }
+};
+```
+> 比较关键的配置项，例如 `cacheGroups` 可以自定义代码风格出的文件名称和代码分割命中的规则，或者例如 `minChunks` 表示被引用多少次才进行打包等等。  
+
+#### 使用魔法注释（magic commit）来进行 chunk 命名。
+```javascript
+function getComponent() {
+  return import(/* webpackChunkName: "lodash" */ 'lodash').then({default: _} => {
+    var element = document.createElement('div');
+    element.innerHTML = _.join(['Dee', 'Yon'], '_');
+    return element;
+  })
+}
+
+getComponent().then(element => {
+  document.body.appendChild(element);
+})
+```
+这里的 `/* webpackChunkName: "lodash" */` 就是魔法注释  
+在文档中相关内容参阅[dynamic-imports](https://webpack.js.org/guides/code-splitting/#dynamic-imports)
 
 ## prefetching, preloading
 prefetching: 等待主要内容加载完毕后，利用空闲进行加载
