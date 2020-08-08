@@ -5,7 +5,7 @@
     - [可参考的资料：](#可参考的资料)
     - [概念](#概念)
   - [Development 和 Production 不同 mode 的区分打包](#development-和-production-不同-mode-的区分打包)
-    - [暴力拆分步骤：](#暴力拆分步骤)
+    - [暴力（分成不同配置文件）拆分步骤：](#暴力分成不同配置文件拆分步骤)
     - [抽离公共配置部分，步骤：](#抽离公共配置部分步骤)
   - [Code Splitting - 代码分割](#code-splitting---代码分割)
     - [概念](#概念-1)
@@ -78,7 +78,7 @@ module.exports = {
 
 ## Development 和 Production 不同 mode 的区分打包
 在成熟的应用或者框架中，这个特性是必备的。  
-### 暴力拆分步骤：
+### 暴力（分成不同配置文件）拆分步骤：
 1. 拆分开发环境和生产环境的配置（webpack.dev.js - 开发环境配置, webpack.prod.js - 生产环境配置）
 2. 在 package.json 中配置：
 ```javascript
@@ -87,7 +87,9 @@ module.exports = {
   "build": "webpack --config webpack.prod.js"
 }
 ```
-> 这样的拆分会导致两个模式下的配置文件的配置项大量冗余。
+> `npm run build`执行的命令生成的目录是可以直接上线的打包文件，一般直接访问生成目录下的`index.js`即可访问  
+  
+> 但是这样的拆分会导致两个模式下的配置文件的配置项大量冗余。
 ### 抽离公共配置部分，步骤：
 相比上面的内容，我们需要多安装一个`webpack-merge`的包。
 ```bash
