@@ -6,7 +6,8 @@
     - [概念](#概念)
   - [Development 和 Production 不同 mode 的区分打包](#development-和-production-不同-mode-的区分打包)
     - [暴力（分成不同配置文件）拆分步骤：](#暴力分成不同配置文件拆分步骤)
-    - [抽离公共配置部分，步骤：](#抽离公共配置部分步骤)
+    - [抽离公共配置部分](#抽离公共配置部分)
+      - [步骤](#步骤)
   - [Code Splitting - 代码分割](#code-splitting---代码分割)
     - [概念](#概念-1)
     - [默认策略](#默认策略)
@@ -90,7 +91,9 @@ module.exports = {
 > `npm run build`执行的命令生成的目录是可以直接上线的打包文件，一般直接访问生成目录下的`index.js`即可访问  
   
 > 但是这样的拆分会导致两个模式下的配置文件的配置项大量冗余。
-### 抽离公共配置部分，步骤：
+### 抽离公共配置部分
+[demos/webpack-split-dev-and-prod-mode](../demos/webpack-split-dev-and-prod-mode)
+#### 步骤
 相比上面的内容，我们需要多安装一个`webpack-merge`的包。
 ```bash
 npm install webpack-merge --save-dev
@@ -166,7 +169,7 @@ module.exports = {
 ```javascript
 // webpack-dev-js 开发环境配置
 const webpack = require('webpack')
-const merge = require('webpack-merge')
+const { merge } = require('webpack-merge')
 const commonConfig = require('./webpack.common.js')
 
 const devConfig = {
@@ -190,7 +193,7 @@ module.exports = merge(commonConfig, devConfig)
 ```
 ```javascript
 // webpack-prod-js 生产环境配置
-const merge = require('webpack-merge')
+const { merge } = require('webpack-merge')
 const commonConfig = require('./webpack.common.js')
 
 const prodConfig = {
