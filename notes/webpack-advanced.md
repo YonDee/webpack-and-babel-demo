@@ -23,6 +23,7 @@
   - [打包 CSS](#打包-css)
     - [loader 的配置变更](#loader-的配置变更)
     - [对单独生成的 css 文件进行压缩](#对单独生成的-css-文件进行压缩)
+  - [多入口文件的配置](#多入口文件的配置)
   - [Webpack 和浏览器缓存](#webpack-和浏览器缓存)
     - [缓存失效](#缓存失效)
   - [Shimming - 垫片](#shimming---垫片)
@@ -245,33 +246,30 @@ window._ = _
 #### split-chunks-plugin
 webpack 底层使用了 [split-chunks-plugin](https://webpack.js.org/plugins/split-chunks-plugin/) 插件（无需额外安装）,默认已经有一套配置来用于代码分割。  
 分割规则的顺序是自上而下的，例如下面这个默认配置截图，一个代码会不会被分割就是通过这个配置从上到下（从 `chunks` 开始到 `cacheGroup` 结束）看看是否符合条件，直到 `cacheGroup` 中定义的规则是否有与之相匹配的进行分割处理。
-##### split-chunks-plugin 的默认规则
+##### split-chunks-plugin 的[默认规则](https://webpack.docschina.org/plugins/split-chunks-plugin/#optimizationsplitchunks)
 ```javascript
 module.exports = {
   //...
   optimization: {
     splitChunks: {
-      chunks: 'all',
-      minSize: 20000,
+      chunks: 'async',
+      minSize: 20000, // 大小限制
       minRemainingSize: 0,
       maxSize: 0,
-      minChunks: 1,
-      maxAsyncRequests: 30,
-      maxInitialRequests: 30,
+      minChunks: 1, // 至少被引用次数
+      maxAsyncRequests: 6,
+      maxInitialRequests: 4,
       automaticNameDelimiter: '~', // 默认名称分割符
       enforceSizeThreshold: 50000,
-      name: true,  // 允许分割代码使用 filename 命名
       cacheGroups: {
         defaultVendors: {
           test: /[\\/]node_modules[\\/]/,
           priority: -10,  // 优先级(数字越大越靠前)
-          filename: "defaultVendors.js"
         },
         default: {
           minChunks: 2,
           priority: -20,
           reuseExistingChunk: true // 如果模块符合两个规则，则使用已经分割打包的模块而不用重新分割打包
-          filename: "default.js"
         }
       }
     }
@@ -279,7 +277,7 @@ module.exports = {
 };
 ```
 > 比较关键的配置项，例如 `cacheGroups` 可以自定义代码风格出的文件名称和代码分割命中的规则，或者例如 `minChunks` 表示被引用多少次才进行打包等等。  
-
+> `vendor` 表示第三方模块，一般在配置项的名称中看到这个单词就可以联想到与第三方模块有关。
 #### 使用魔法注释（magic commit）来进行 chunk 命名。
 ```javascript
 function getComponent() {
@@ -308,10 +306,19 @@ preloading: 和主要进程内容一起加载
 > 从代码覆盖率上进行优化思考，合理使用 prefetching 可以大大提高首次加载内容的代码利用率。
 
 ## Lazy Loading 懒加载
-在需要的时候进行模块的加载，第一次请求不需要加载所有模块，使得页面访问速度更快，通过 `import` 异步加载模块。这是 ECMAScript 的概念，和 Webapck 无关。
+在需要的时候进行模块的加载，第一次请求不需要加载所有模块，使得页面访问速度更快，**通过 `import().then(() => {})` 异步加载模块实现懒加载（在需要的时候进行加载）**。这是 [ECMAScript 的概念](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Statements/import)，不是某个特定的语法。
+> ⚠️注意：这里不是说`import`静态导入模块，`import()`表示运行时动态加载
+```javascript
+//...j
+setTimeout() => {
+  import('./dynamic-data.js').then(res => {
+    console.log(res.default.message)
+  }, 1500)
+}
+```
 
 ## Chunk
-Webpack **打包生成的 JS 文件**都被称为 Chunk，包括代码分割的文件。例如配置项中的：
+Webpack **打包生成的 JS 文件（打包出的代码块）**都被称为 Chunk，包括代码分割的文件。例如配置项中的：
 ```javascript
 optimization: {
   splitChunks: {
@@ -338,8 +345,8 @@ module.exports = {
 ## 打包 CSS
 - 官方推荐plugin: [mini-css-extract-plugin](https://webpack.docschina.org/plugins/mini-css-extract-plugin/
 )。  
-这个插件会将 css 从打包到的 JS 文件中，提取到单独的 css 文件中。（对 webpack 而言，默认就是将各种资源文件打包成 JS）
-> webpack 4.0 以前可能会使用 [extract-text-webpack-plugin](https://webpack.js.org/plugins/extract-text-webpack-plugin/) 插件来实现相应的功能，现在针对于 css 文件，建议使用 mini-css-extract-plugin  
+这个插件会将 css 从打包到的 JS 文件中，**提取到单独的 css 文件中**(在官网 code splitting 部分对于 css 的分离也提到了这个插件)。（对 webpack 而言，默认就是将各种资源文件打包成 JS）
+> webpack 4.0 **以前**可能会使用 [extract-text-webpack-plugin](https://webpack.js.org/plugins/extract-text-webpack-plugin/) 插件来实现相应的功能，现在针对于 css 文件，建议使用 mini-css-extract-plugin  
 
 > 对于不同入口文件的 css 代码分割，mini-css-extract-plugin 也有详细的[配置](https://webpack.docschina.org/plugins/mini-css-extract-plugin/#extracting-css-based-on-entry)
 
@@ -347,9 +354,67 @@ module.exports = {
 使用 mini-css-extract-plugin 生成单独文件需要将 webpack 配置文件中的 `style-loader` 替换成`MiniCssExtractPlugin.loader`
 
 ### 对单独生成的 css 文件进行压缩
-- 官方推荐plugin: [optimize-css-assets-webpack-plugin](https://github.com/NMFR/optimize-css-assets-webpack-plugin)
+- 官方推荐plugin1: 
+  - [terser-webpack-plugin](https://github.com/terser/terser)
+  - [optimize-css-assets-webpack-plugin](https://github.com/NMFR/optimize-css-assets-webpack-plugin)
 - 官方压缩示例 - [Minimizing For Production](https://webpack.docschina.org/plugins/mini-css-extract-plugin/#minimizing-for-production)
+```javascript
+// webpack.prod.js
+const TerserJSPlugin = require('terser-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
+module.exports = {
+  //...
+  plugins: [
+    new MiniCssExtractPlugin({
+      filename: 'css/[name].[contentHash:8].js' // 打包到 css 目录下
+    })
+  ],
+  optimization: {
+    // 压缩 css
+    minimizer: [
+      new TerserJSPlugin({}),
+      new OptimizeCSSAssetsPlugin({})
+    ]
+  }
+  //...
+}
+```
+> 注意在生产发布的环境中，打包JS要加上`[contentHash]`来使用缓存
 
+## 多入口文件的配置
+当 `entry` 存在多个 key 的时候，就需要进行额外的配置来配合多入口文件。
+```javascript
+// webpack.prod.js
+// ...
+module.exports = {
+  //...
+  entry: {
+    index: './src/index.js',
+    other: './src/other.js'
+  }
+  //...
+  output: {
+    filename: '[name].[contentHash:8].js',
+    path: resolve(__dirname, "dist")
+  },
+  // 除此之外 还需要额外配置 html-webpack-plugin
+  plugins: [
+    //...
+    new HtmlWebpackPlugin({
+      template: "./src/index.html",
+      filename: "index.html",
+      // chunks 表示该页面要引用哪些 chunk (打包的文件)，包括要使用的 splitting 的 chunk
+      chunks: ['index'] // 只引用 index.js
+    }),
+    new HtmlWebpackPlugin({
+      template: "./src/other.html",
+      filename: "other.html",
+      chunks: ['other']
+    })
+  ]
+}
+```
 
 ## Webpack 和浏览器缓存
 重点：在配置的 `output` 中设置 `contenthash`
@@ -357,12 +422,13 @@ module.exports = {
 module.exports = {
   /*...*/
   output: {
-    filename: '[namel].[contenthash].js',
+    filename: '[name].[contenthash].js',
     chunkFileName: '[name].[contenthash].js',
   }
   /*...*/
 }
 ```
+> 这里的`[name]`表示entry的属性名（key），多个 entry 配置成这样是必要的，可以表示 entry 的多个key
 ### 缓存失效
 在老版本 webpack 中，manifest 可能会使缓存失效，每次打包的时候 manifest 有变化。为了避免这个情况需要配置：
 ```javascript
@@ -623,4 +689,4 @@ module.exports = {
 > 至此，可以实现模块的单独打包并且挂载到全局，但是全局必须要从`vendors`这个名称进行模块的访问。
 
 #### 进阶方案
-使用 webpack 自带的 `webpack.DllPlugin` 生成动态链接库，并配合`webpack.DllRefencePlugin`插件来引用动态链接库的代码。
+使用 webpack 自带的 `webpack.DllPlugin` 生成动态链接库，并配合 `webpack.DllRefencePlugin` 插件来引用动态链接库的代码。

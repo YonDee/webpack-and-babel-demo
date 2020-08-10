@@ -7,6 +7,7 @@
       - [使用](#使用)
       - [css loader 的其他常用技巧](#css-loader-的其他常用技巧)
       - [打包字体文件](#打包字体文件)
+      - [打包图片](#打包图片)
   - [Plugin](#plugin)
     - [常用 plugin](#常用-plugin)
   - [Source Map](#source-map)
@@ -101,6 +102,31 @@ module: {
   }
 }
 ```
+#### 打包图片
+```js
+module: {
+  rules: [{
+    test: /\.(jpg|png|gif)$/,
+    use: {
+      loader: 'url-loader',
+      options: {
+        name: '[name]_[hash].[ext]',
+        outputPath: 'images/',
+
+        // 小于 5kb 的图片用 base64 格式产出
+        // 否则，依然延用 file-loader 的形式，产出 url 格式
+        limit: 5 * 1024,
+
+        // 打包到 img 目录下
+        outputPath: '/img1/',
+
+        // 设置图片的 cdn 地址（也可以统一在外面的 output 中设置，那将作用于所有静态资源）
+        // publicPath: 'http://cdn.abc.com'
+      }
+    }
+  }]
+}
+```
 
 ## Plugin
 [Documentation - Plugin](https://webpack.js.org/plugins/)  
@@ -180,7 +206,27 @@ module.exports = {
 }
 ```
 > 会自动监听并且刷新浏览器，可以发送 Ajax 请求。  
-> 有关于 devServer ，查看文档 [Documentation - DevServer](https://webpack.js.org/configuration/dev-server/)
+> 有关于 `devServer` ，查看文档 [Documentation - DevServer](https://webpack.js.org/configuration/dev-server/)
+常见的 `devServer` 配置例如：
+
+```javascript
+devSever: {
+  port: 8080, // 测试所使用的端口
+  progress: true, // 显示打包进度条
+  contentBase: distPath, // 根目录
+  open: true, // 自动打开浏览器
+  compress: true, // 启动 gzip 压缩
+  proxy: {
+    '/api': 'http://localhost:3000',
+    '/api2': {
+      target: 'http://localhost:3000',
+      pathRewrite: {
+        '/api2': ''
+      }
+    }
+  }
+}
+```
 3. 在 Node 环境中使用 Koa 或 express 之类的中间件自己实现服务器并实现监听
 ```bash
 $ npm install express webpack-dev-middleware -D
@@ -339,6 +385,7 @@ $ npm install @babel/preset-react --save-dev
 - [webpack-cli](https://github.com/webpack/webpack-cli/)
 - [file-loader](https://github.com/webpack-contrib/file-loader)
 - [css-loader](https://github.com/webpack-contrib/css-loader)
+- [url-loader](https://webpack.js.org/loaders/url-loader/)
 #### 开发相关
 - [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin)
 - [clean-webpack-plugin](https://github.com/johnagan/clean-webpack-plugin)
